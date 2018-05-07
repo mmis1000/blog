@@ -4,12 +4,12 @@ title: About
 permalink: /about/
 ---
 
-Some information about you!
+Hi! I am Mmis1000, a Web Developer.
 
 ### More Information
 
-A place to include any other types of information that you'd like to include about yourself.
+I am learing the web technology, using the power of web to make the life easier.
 
 ### Contact me
 
-[email@domain.com](mailto:email@domain.com)
+[mmis10002@gmail.com](mailto:mmis10002@gmail.com)
