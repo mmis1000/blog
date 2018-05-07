@@ -3,7 +3,7 @@ layout: post
 title: 如何開啟 Github pages 的強制 HTTPS 模式
 ---
 
-## Let us make your GitHub pages secure again!
+Let us make your GitHub pages secure again!
 
 ## 前提
 1. 你要有一個設定好 GitHub pages 的 repo
