@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 如何開啟 Github pages 的強制 HTTPS 模式
+title: 如何開啟 GitHub pages 的強制 HTTPS 模式
 ---
 
 Let us make your GitHub pages secure again!
@@ -8,9 +8,9 @@ Let us make your GitHub pages secure again!
 ## 前提
 1. 你要有一個設定好 GitHub pages 的 repo
 2. 你的 GitHub page 必須已經 [綁定了自定的網域](https://help.github.com/articles/quick-start-setting-up-a-custom-domain/)
-3. 你已經設定過了 DNS 紀錄將網域指向 GITHUB 的主機
+3. 你已經設定過了 DNS 紀錄將網域指向 GitHub 的主機
 4. 如果你使用了 `CloudFlare` 或 `CloudFront` 等 CDN 服務，你已經將 CDN 模式關閉  
-  - 否則 GITHUB 將沒辦法正確偵測到你已經將 DNS 紀錄指向正確的主機
+  - 否則 GitHub 將沒辦法正確偵測到你已經將 DNS 紀錄指向正確的主機
 
 ## 步驟
 1. 如果你原本的網域是用 `A 紀錄` ，跳到 `步驟 2` ，不然跳到 `步驟 6`
