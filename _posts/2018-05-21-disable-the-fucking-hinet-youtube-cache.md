@@ -28,6 +28,7 @@ Well... Let me explain this for you.
 4. 隨便找一條類似 `https://r5.sn-ipoxu-uool.googlevideo.com/videoplayback?....` 這樣的網址（有寫到 videoplayback 的）
 5. 在 `命令提示字元` 中輸入 `tracert r5.sn-ipoxu-uool.googlevideo.com` (這裡的網址就是你剛剛看到的網址裡的伺服器名稱)
 6. 你會得到類似這樣的結果 
+
 ```
 在上限 30 個躍點上
 追蹤 r5.sn-ipoxu-uool.googlevideo.com [202.39.143.80] 的路由:
@@ -41,6 +42,7 @@ Well... Let me explain this for you.
 
 追蹤完成。
 ```
+
 7. 如果你發現最後一個 ip 的網域紀錄是像這個範例中的 `xxx.hinet-ip.hinet.net` 的話，恭喜你，你已經確定是中華電信 Youtube 快取節點的受害者了
 8. 先把後面 [] 裡的 ip 記下來，待會會用到（範例中是 202.39.143.80）
 
@@ -59,7 +61,7 @@ Well... Let me explain this for you.
 12. 重新整理剛剛你覺得卡到爆炸的 Youtube 網頁，這時他應該會發現 hinet 裡的節點連不上，自己跳到下其他的伺服器（第一次會久一點），如果不確定，可以看 f12 裡的 網路 頁籤確認伺服器是否真的改變了
 13. 如果有一天中華修好了這個快取伺服器，不再會卡了，你只要把這條規則刪除就好了（估計沒戲）
 
-### 如何處裡這個問題 (t)
+### 如何處裡這個問題 (the true way)
 1. 投訴中華電信直到他修好這個問題（中華電信：我會修好他我跟妳姓）
 
 ### 備注
