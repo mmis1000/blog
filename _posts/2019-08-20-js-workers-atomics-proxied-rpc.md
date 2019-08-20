@@ -174,7 +174,86 @@ if (actualOriginalValue === oldValue) {
 
 問題解決
 
-### 2 處理雙向呼叫
+### 2.1 處理雙向呼叫
+
+簡化過的代碼
+
+```js
+// Main
+function sendMessage () {
+   requestWorker(req)
+   var result = pollResultFromWorker()
+   return result
+}
+
+// Worker
+function handleMessage(req) {
+   const res = handle(req) // whatever
+   responseToWorker(res)
+}
+```
+
+考慮以下順序
+
+```txt
+Blocking   Main thread           Worker thread   Blocking
+   v           |
+   v           | ----- request  ----->  |           v
+   v           | <---- response ----->  |           v
+   v           |
+```
+
+在 main thread 送出 request 後，他會預期 worker 應該會回覆給他 response，這期間整個 main thread 是 blocking 的，
+如果其他這時 worker 又想請求 main thread 怎麼辦？
+
+如果...在收到回覆的時候加一個事件類型判斷是不是請求可不可行？
+
+```js
+// Main
+function handleMessage(req) { /* whatever */}
+
+function sendMessage () {
+   requestWorker(req)
+   while (true) {
+      var result = pollResultFromWorker()
+
+      if (isResult(result)) {
+         break
+      } else if (isRequest(result)) {
+         handleMessage(result)
+      }
+   }
+   return result
+}
+
+// Worker
+function handle (req) {
+   // ....
+   requestWorkerMain(req + 1)
+   // ....
+}
+
+function handleMessage(req) {
+   const res = handle(req) // whatever
+   responseToWorker(res)
+}
+```
+
+順序變成
+
+```txt
+Blocking   Main thread           Worker thread   Blocking
+   v           |
+   v           | ----- request  ------> |           v
+   v           |                      | |           v
+   v           | | <-- request  ----- | |           v
+   v           | | --- response ----> | |           v
+   v           |                      | |           v
+   v           | <---- response-------- |           v
+   v           |
+```
+
+能行嗎？看起來能（然而我也不知道到底還有沒有哪裡寫錯 orz）
 
 ## Reference
 
