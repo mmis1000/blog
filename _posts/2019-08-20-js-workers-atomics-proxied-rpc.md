@@ -20,6 +20,10 @@ Let's make it just works.
 
 ### 動機
 
+#### td;dr; 我只對 code 有興趣
+
+[Here you are, DOM Proxy(GitHub repository)](https://github.com/mmis1000/DOM-Proxy/tree/5a0ac8b7a331f694619413dd738e8cd9dadcc37b)
+
 #### **到底為什麼要這樣做啊？ 🤔**
 
 在幾個月前，某個地方的聊天室裡，聊天中，有人提出了一個疑問：「 `我可以在 web worker 中處理 dom 上的事件並且按情況 preventDefault() 嗎？` 」
@@ -57,14 +61,17 @@ Let's make it just works.
    3. 要是兩邊同時呼叫導致 dead lock 死在那邊怎麼辦?
 2. 我能不能靠它直接雙向讀寫 DOM？
    1. 在 `worker 呼叫 dom 並等待結果` 時，如果 `dom 又想呼叫 worker` 怎麼辦？
+      - 你必須要能在 callback 裡呼叫 `preventDefault` 才有用啊！
 3. 我想要直接在 web worker `document.body.appendChild(document.createElement('div'))` 可不可以？
-   2. 如果用 `Proxy` 攔截全部性來模擬 DOM 物件可行嗎？
-   3. 垃圾回收怎麼辦？這樣不會漏記憶體嗎？
+   1. 如果用 `Proxy` 攔截全部性來模擬 DOM 物件可行嗎？
+   2. 如何讓 worker 裡的 placeholder 能永遠指向 main thread 正確的 DOM 物件？
+   3. 三等號怎麼辦？要怎麼避免不同 placeholder 指向同一個物件導致比較失敗？
+   4. 垃圾回收怎麼辦？一直製造 placeholder 的話不會漏記憶體嗎？
 
 ## 用到的技術
 
 1. Web Worker
-   - Web 裡的 multithread
+   - Web 裡的 multi thread
    - [在 MDN 上的簡介](https://developer.mozilla.org/zh-TW/docs/Web/API/Web_Workers_API/Using_web_workers)
 2. SharedArrayBuffer
    - 在不同 Web Worker 直接共享記憶體的 API
@@ -87,7 +94,9 @@ Let's make it just works.
 
 ## 實驗
 
-### 1.1 Atomics.waitAsync
+### 1.1 Atomic.wait/Atomics.waitAsync
+
+跨 worker 的呼叫機制
 
 測了一下 `Atomics.wait` ，一切正常
 
@@ -110,11 +119,11 @@ async function run () {
 
 ### 1.2 Busy spin wait
 
-可是主頁面不給 Atomics.wait 啊？他對我們要做的事好無疑問是必要的，有沒有 workaround？
+可是主頁面不給 Atomics.wait 啊？他對我們要做的事毫無疑問是必要的，有沒有 workaround？
 
 [TC39 Issue](https://github.com/tc39/ecmascript_sharedmem/issues/100)
 
-看起來，有人提到，ecmascript 內部適用busy spining 來模擬 atomics.wait，這會動嗎？讓我們實驗一下
+看起來，有人提到，ecmascript 內部是用 busy spining 來模擬 atomics.wait，這會動嗎？讓我們實驗一下
 
 ```js
 // main page
@@ -148,7 +157,7 @@ ia32[offset] = newValue
 
 他接收四個參數，分別是 Int32Array, 偏移, 原始值, 新的值
 
-在原始的值跟預期不一樣時就不會去更改記憶體中的值，並且會返回原本的值，所以只要比較他回傳的植根預期的原始值就知道變更成不成功
+在原始的值跟預期不一樣時就不會去更改記憶體中的值，並且會返回原本的值，所以只要比較他回傳的值跟預期的原始值就知道變更成不成功
 
 ```js
 // main page
@@ -187,6 +196,7 @@ function sendMessage () {
 }
 
 // Worker
+function handle (req) { /* ... */ }
 function handleMessage(req) {
    const res = handle(req) // whatever
    responseToWorker(res)
@@ -210,7 +220,7 @@ Blocking   Main thread           Worker thread   Blocking
 
 ```js
 // Main
-function handleMessage(req) { /* whatever */}
+function handleMessage(req) { /* whatever */ }
 
 function sendMessage () {
    requestWorker(req)
@@ -242,22 +252,307 @@ function handleMessage(req) {
 順序變成
 
 ```txt
-Blocking   Main thread           Worker thread   Blocking
+Blocking   Main thread         Worker thread   Blocking
    v           |
-   v           | ----- request  ------> |           v
-   v           |                      | |           v
-   v           | | <-- request  ----- | |           v
-   v           | | --- response ----> | |           v
-   v           |                      | |           v
-   v           | <---- response-------- |           v
+   v           | ----- request  ----> |           v
+   v           |                    | |           v
+   v           | | <-- request  --- | |           v
+   v           | | --- response --> | |           v
+   v           |                    | |           v
+   v           | <---- response ----- |           v
    v           |
 ```
 
-能行嗎？看起來能（然而我也不知道到底還有沒有哪裡寫錯 orz）
+能行嗎？看起來能（然而我也不知道到底還有沒有哪裡寫錯 orz）  
+在這個時間點，就已經有一個雙向同步 RPC 的雛形了  
+可以對最開始的問題回答 **YES，的確可能**
+
+不過我們能不能更進一步？
+
+### 3.1 Proxy
+
+請問我可不可以用 Proxy 直接 relay 全世界？  
+
+看起來好像可以，proxy 有很多的 trap 可以修改一個動作的回傳結果，像是
+
+```js
+var newObject = new Proxy(oldObjectOrFunction, {
+   set () {
+      // 改變 newObject.xxx = ooo 的結果
+   },
+   get () {
+      // 改變 var ooo = newObject.xxx 的結果
+   },
+   apply () {
+      // 改變 newObject() 的結果
+   },
+   construct () {
+      // 改變 new newObject() 的結果
+   }
+   //... 還有其他很多的
+})
+```
+
+而為了達成我們接下來要做的事，我們至少要攔截 `get` , `apply`
+
+讓我們試試
+
+```js
+var fun = new Proxy({}, {
+   apply () {
+      console.log('trapped')
+   },
+   get () {
+      return 1
+   }
+})
+fun()
+console.log(fun.a)
+```
+
+我們得到了...錯誤訊息一枚🌚
+
+```txt
+Uncaught TypeError: fun is not a function
+```
+
+看來要 callable 需要原本的物件也是 function，  
+讓我們再一次
+
+```js
+var fun = new Proxy(() => {}, {
+   apply () {
+      console.log('trapped')
+   },
+   get () {
+      return 1
+   }
+})
+fun()
+console.log(fun.a)
+```
+
+大成功！ console 印出了我們寫的訊息，也顯示了改變回傳值後的屬性
+
+### 3.2 讓 worker 裡的 placeholder 對應到 dom 物件吧
+
+首先，我們只能傳遞可序列的資料過去 rpc 啊？不能直接傳遞物件的 reference  
+那，弄個 id 來對應物件可不可行？
+
+首先讓我們 main page 這邊弄個 map 對應 id 到物件
+
+```js
+// main page
+/**
+ * @type {Map<number, object>}
+ */
+var idToObjectMap = new Map()
+
+// worker
+// ...
+```
+
+讓我們把 main page 的 window 對應的 id 送到 worker
+
+```js
+// main page
+/**
+ * @type {Map<number, object>}
+ */
+var idToObjectMap = new Map()
+var idOfWindow = getId()
+idToObjectMap.set(id, window)
+
+sendIdToWorker(idOfWindow)
+
+// worker
+// ...
+```
+
+然後在 worker 這邊接收 id，並用這個 id 產生一個 placeholder
+
+```js
+// main page
+// ...
+
+// worker
+var idOfMainWindow = getIdFromMain()
+var fakeWindow = new Proxy({}, {
+   // .... use the idOfMainWindow somewhere
+})
+```
+
+接下來 main window 這邊按照 worker 傳過來的 id 比較從 map 找到物件就好，之後重複一樣步驟（ apply 同理）
+
+```js
+// main page
+// ...
+var [requestObjectId, prop] = getGetRequestFromWorker()
+var propertyValue = idToObjectMap.get(requestObjectId)[prop]
+
+var idOfPropertyValue = getId()
+idToObjectMap.set(idOfPropertyValue, window)
+
+sendIdToWorker(idOfWindow)
+// worker
+// ...
+var fakeWindow = new Proxy({}, {
+   get (target, prop, receiver) {
+      var id = getRemoteProperty(idOfMainWindow, prop)
+      var object = createFakeObject(id)
+      return object
+   },
+   apply (target, thisArg, argumentsList) {
+      return callRemoteFunction(id, thisArg, argumentsList)
+   }
+})
+console.log(fakeWindow.document)
+```
+
+實驗完畢，problem solved
+
+### 3.3 讓物件比較正常運作
+
+就如同前面展示的，  
+每一次 get 呼叫 createFakeObject 產生的都是不同 wrapper 啊?
+
+所以就會變成
+
+```js
+// worker
+fakeWindow.document == fakeWindow.document // false???
+```
+
+這肯定不太對，而且這邊有兩個問題
+
+1. main page 每次送來得對應 document 的 id 都不一樣，worker 沒辦法知道實際上是一樣的 object
+2. worker 每次都會產生新的 wrapper，導致物件比較失敗
+
+針對第一個問題，我們加一個 map 記憶之前有送到 worker 過的物件，如果下次需要送一樣的東西就用之前的 id
+
+```js
+// main page
+// 送出物件到 worker 時
+/** start */
+var objectToIdMap = /** @type {WeakMap<object, number>} */ new WeakMap()
+/** end */
+
+var idOfWindow = getId()
+idToObjectMap.set(id, window)
+
+/** start */
+objectToIdMap.set(window, id)
+/** end */
+
+// 存取屬性時
+
+var [requestObjectId, prop] = getGetRequestFromWorker()
+var propertyValue = idToObjectMap.get(requestObjectId)[prop]
+
+/** start */
+if (objectToIdMap.has(propertyValue)) {
+  return sendIdToWorker(objectToIdMap.get(propertyValue))
+}
+/** end */
+
+var idOfPropertyValue = getId()
+idToObjectMap.set(idOfPropertyValue, window)
+
+sendIdToWorker(idOfWindow)
+```
+
+問題一解決！接下來 worker 對一樣的物件一定會拿到一樣 id 了。
+
+讓我們來解決問題二
+
+我們之前每次拿到新的 id 都是直接產生新的 proxy，我們可不可以讓一樣的 id 拿到之前的 proxy？  
+把 ID 跟 proxy 對應記起來如何？像是這樣的
+
+```js
+// worker
+/** start */
+var cachedIdToFakeObject = new Map()
+/** end */
+
+// ...
+var fakeWindow = new Proxy({}, {
+   get (target, prop, receiver) {
+      var id = getRemoteProperty(idOfMainWindow, prop)
+      /** start */
+      if (cachedIdToFakeObject.has(id)) {
+         return cachedIdToFakeObject.get(id)
+      }
+      /** end */
+
+      var object = createFakeObject(id)
+
+      /** start */
+      cachedIdToFakeObject.set(id, object)
+      /** end */
+
+      return object
+   },
+   apply (target, thisArg, argumentsList) {
+      return callRemoteFunction(id, thisArg, argumentsList)
+   }
+})
+```
+
+能行
+
+```js
+// worker
+fakeWindow.document == fakeWindow.document // true 🎉
+```
+
+問題解決
+
+### 3.4 搞定 GC
+
+Q: 我們剛才...是不是完全沒請理掉 map 裡的東西過，這樣真的能行嗎？？？  
+A: **毫無疑問，記憶體會漏**  
+Q: 可是我要怎麼知道 map 裡的東西能清了？  
+A: 好像年初 chrome 有個草案就是為了這個存在的  
+Q: 哪個？  
+A: [WeakRef (stage3) & FinalizationGroup (stage2)](https://github.com/tc39/proposal-weakrefs)
+
+Let's try it.
+
+首先，先把保存物件的 map 改成保存 WeakRef 以免導致物件無法回收
+
+```js
+      // ...
+      // cachedIdToFakeObject.set(id, object)
+      cachedIdToFakeObject.set(id, new WeakRef(object))
+      // ...
+
+```
+
+然後利用草案中的 FinalizationGroup 追蹤物件到底能回收了沒
+
+```js
+var finalizationGroup = new FinalizationGroup(iter => {
+   for (let id of iter) {
+      clearUp(id)
+   }
+})
+
+// 產生 fakeObject  的地方...
+finalizationGroup.register(fakeObject, fakeObject的Id, fakeObject)
+// ...
+```
+
+OK, 這樣問題就解決了，記憶體不漏了
+
+## 總結
+
+這次的實作中，把一些平常少用的 API 都試了一輪，也嘗試了幾個還在草案中的新 api，算是一次有趣的旅程，然後我把嘗試結果都放在這裡了，有興趣的去看看吧（或是鞭我寫出了什麼大 bug🌚🔫）
+
+[DOM Proxy(GitHub repository)](https://github.com/mmis1000/DOM-Proxy/tree/5a0ac8b7a331f694619413dd738e8cd9dadcc37b)
 
 ## Reference
 
-1. [Proxy]((https://developer.mozilla.org/zh-TW/docs/Web/JavaScript/Reference/Global_Objects/Proxy))
+1. [Proxy](https://developer.mozilla.org/zh-TW/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
 2. [Atomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics)
 3. [Atomics.asyncAwait (stage2)](https://github.com/tc39/proposal-atomics-wait-async) (2019/08/20)
    - 有 polyfill
