@@ -48,7 +48,9 @@ Express.js 預設使用了類似 PHP 的延伸 query string 格式
 
 ```json
 {
-    "a": "1"
+    "data": {
+        "a": "1"
+    }
 }
 ```
 
