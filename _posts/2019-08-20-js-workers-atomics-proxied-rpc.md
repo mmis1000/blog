@@ -20,7 +20,7 @@ Let's make it just works.
 
 ### 動機
 
-#### td;dr; 我只對 code 有興趣
+#### TL;DR 我只對 code 有興趣
 
 [Here you are, DOM Proxy(GitHub repository)](https://github.com/mmis1000/DOM-Proxy/tree/5a0ac8b7a331f694619413dd738e8cd9dadcc37b)
 
