@@ -52,7 +52,7 @@ setA(1)
 setB(0)
 print()
 
-// 輸出: `a is 1, b is 0`
+// 輸出: a is 1, b is 0
 ```
 
 看起來一切正常
@@ -97,7 +97,7 @@ setA(1)
 setB(0)
 print()
 
-// 輸出: `a is 1, b is 0, a xor b is 1`
+// 輸出: a is 1, b is 0, a xor b is 1
 ```
 
 看起來輸出是對的。
@@ -111,7 +111,7 @@ setB(0)
 setA(1)
 print()
 
-// 輸出: `a is 1, b is 0, a xor b is 0`
+// 輸出: a is 1, b is 0, a xor b is 0
 ```
 
 歐不，程式出 bug 了
@@ -149,7 +149,7 @@ it('should work when setA then setB', function () {
     setB(0)
     setA(1)
 })
-// 其他高達幾十種組組合...
+// 其他高達幾十種組合...
 ```
 
 這些聽起來某種意義上很愚蠢對吧？
@@ -183,7 +183,7 @@ it('should work when setA then setB', function () {
 
 然而問題的核心並不在這裡。
 
-而是， **為甚麼我們的程式要能表達出 bug 的狀態？**
+而是， **為什麼我們的程式要能表達出 bug 的狀態？**
 
 我們最開始的程式是不會有 bug 的，因為每一個狀態都是正確的，不存在能表達程式遇到 bug 的狀態。
 
