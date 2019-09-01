@@ -93,3 +93,9 @@ code {
 .highlight .vg { color: #268BD2 } /* Name.Variable.Global */
 .highlight .vi { color: #268BD2 } /* Name.Variable.Instance */
 .highlight .il { color: #2AA198 } /* Literal.Number.Integer.Long */
+
+code.highlighter-rouge {
+  border-radius: 4px;
+  padding: 2px;
+  background: rgba(27,31,35,.05);;
+}
