@@ -7,7 +7,7 @@ title: 同步。同步？失去同步！
 
 ## 前言
 
-[接上集]({{ site.baseurl }}/2019-08-28-states-getters-and-bugs)
+[接上集]({{ site.baseurl }}/states-getters-and-bugs/)
 
 寫程式的過程中，你有沒有發生過， `按了表單忘記更新變數` ， `hash，變了存在變數裡的網址卻沒更新到` 等種種事故呢？
 
