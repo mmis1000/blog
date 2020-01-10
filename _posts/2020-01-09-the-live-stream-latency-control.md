@@ -254,6 +254,41 @@ const flvPlayer = this.player = Flv.createPlayer({
 })
 ```
 
+## 範例
+
+### 伺服器端：nginx
+
+https://github.com/mmis1000/http-flv/blob/bef023f4d30e4b08326a1054d8a7a9bbd7fdfe12/nginx/conf.d/rtmp/rtmp.conf
+
+### 觀眾端：flv.js
+
+https://github.com/mmis1000/http-flv/blob/6d8500b5743d5d4aa11859ed2f0c4256448cc2e1/web/src/components/FlvJs.vue
+
+### 整合好的範例 docker
+
+```shell
+docker run --rm -it -p 1980:80 -p 1935:1935 mmis1000/nginx-http-flv:dev
+```
+
+網頁在 http://127.0.0.1:1980/
+
+影片上傳網址為  rtmp://127.0.0.1:1935/demo/stream-1
+
+### 直播主端：產生測試串流的 ffmpeg 指令
+
+```shell
+ffmpeg \
+  -re -fflags +genpts \
+  -stream_loop -1 \
+  -i '你的影片' \
+  -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 50 \
+  -c:a aac -b:a 160k -ac 2 -ar 44100 \
+  -f flv \
+  -force_key_frames 'expr:gte(t,n_forced*1)' -flags +cgop \
+  -vf drawtext=fontfile=roboto.ttf:text='%{localtime}':fontsize=40:fontcolor=white@0.8:x=250:y=200 \
+  '串流網址'
+```
+
 ## 結論
 
 雖然不像專有協議一樣可以達到小於一秒的極限延遲，  
