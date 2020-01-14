@@ -46,7 +46,37 @@ title: 如何自架低延遲直播
 過少的 keyframe 會導致片段大小暴增，  
 除此之外，一定要遇到 Key frame 後，瀏覽器或是任何的播放器才能解出影像。
 
-所以這還會影響開始播放的啟動延遲
+#### GOP cache
+
+為了允許新加入的 client 立刻撥開始播放影片，有的媒體伺服器會從上一次遇到 keyframe 的地方開始播放。
+這會導致觀眾相較於直撥主落後一段時間
+
+```txt
+Frames IPPPPPPPPI
+           ^ 直撥者
+Frames IPPPPPPPPI
+       ^ 觀眾
+```
+
+而在不使用 `GOP cache` 的情況則是，媒體伺服器會等到直撥主送出下一個 keyframe 後，才開始推送影片給觀眾
+
+```txt
+一開始
+Frames IPPPPPPPPI
+           ^ 直撥者
+Frames IPPPPPPPPI
+       ???
+
+下一個 keyframe 開始
+Frames IPPPPPPPPI
+                ^ 直撥者
+Frames IPPPPPPPPI
+                ^ 觀眾
+```
+
+這種情況下則會影響開始播放的啟動延遲
+
+因此
 
 > 過長的沒有 key frame 的片段需要盡可能避免
 
