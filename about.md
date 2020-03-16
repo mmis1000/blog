@@ -8,7 +8,7 @@ Hi! I am Mmis1000, a Web Developer.
 
 ### More Information
 
-I am learing the web technology, using the power of web to make the life easier.
+I am learning the web technology, using the power of web to make the life easier.
 
 ### Contact me
 
