@@ -7,7 +7,7 @@ title: Vue SPA 完全 debug 攻略
 
 ## 前提
 
-電腦上需要安奘的軟體
+電腦上需要安裝的軟體
 
 1. FireFox or Chrome
 2. Vue dev tool
